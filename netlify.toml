@@ -13,5 +13,5 @@
   status = 200
 
 [build.environment]
-  VITE_SUPABASE_URL = "https://igsywszdbsxegmsqgfif.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlnc3l3c3pkYnN4ZWdtc3FnZmlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTQyNjgsImV4cCI6MjA1NTI5MDI2OH0.uqJTwoOC6nx2H766lMAbRuhySx6pGGUqWJBJZcKY1oQ"
+  VITE_SUPABASE_URL = "https://zoemtjvudhvvxcslcoqa.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZW10anZ1ZGh2dnhjc2xjb3FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwODE5NjQsImV4cCI6MjA1NDY1Nzk2NH0.wK1v9oOytAfdBgo4IPoOsVJmkjh1EJf9eIFkBIMSajI"
