@@ -1,23 +1,22 @@
 /*
-  # Initial Schema Setup
+  # Initial Database Schema
 
   1. Tables
-    - messages: For group chat messages
-    - groups: For study groups
-    - group_members: For group membership
-    - user_profiles: For user information
-    - meetings: For scheduled meetings
+    - messages: For storing group chat messages
+    - groups: For managing study groups
+    - group_members: For tracking group membership
+    - user_profiles: For storing user information
+    - meetings: For scheduling group meetings
 
   2. Functions
-    - generate_unique_view_code: Generates unique codes for user profiles
-    - get_user_email: Retrieves user email securely
+    - get_user_email: Helper to get user email
     - handle_group_deletion: Cleanup on group deletion
-    - handle_new_user: Setup new user profiles
+    - handle_new_user: Setup new user profile
 
   3. Security
     - Row Level Security (RLS) enabled on all tables
+    - Policies for data access control
     - Storage policies for avatar management
-    - Table-specific policies for data access control
 */
 
 -- Messages table
@@ -56,7 +55,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   topics text[] DEFAULT ARRAY[]::text[],
   theme text NOT NULL DEFAULT 'dark',
   created_at timestamptz DEFAULT now(),
-  view_code text UNIQUE,
+  view_code text UNIQUE DEFAULT encode(gen_random_bytes(6), 'base64'),
   profile_picture_url text,
   custom_avatar_url text,
   gender text CHECK (gender IN ('male', 'female', 'other')) DEFAULT 'other'
@@ -77,49 +76,6 @@ CREATE TABLE IF NOT EXISTS meetings (
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
-
--- Function to generate unique view code
-CREATE OR REPLACE FUNCTION generate_unique_view_code(target_id uuid)
-RETURNS text
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  chars text := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  result text := '';
-  i integer := 0;
-  rows_affected integer;
-BEGIN
-  WHILE i < 10 LOOP
-    -- Generate 8-character code
-    result := '';
-    FOR j IN 1..8 LOOP
-      result := result || substr(chars, floor(random() * length(chars) + 1)::integer, 1);
-    END LOOP;
-    
-    -- Try to update the user's view code
-    BEGIN
-      UPDATE user_profiles 
-      SET view_code = result 
-      WHERE id = target_id 
-      AND (view_code IS NULL OR view_code = '');
-      
-      GET DIAGNOSTICS rows_affected = ROW_COUNT;
-      
-      IF rows_affected > 0 THEN
-        RETURN result;
-      END IF;
-    EXCEPTION WHEN unique_violation THEN
-      -- Continue to next iteration
-    END;
-    
-    i := i + 1;
-  END LOOP;
-  
-  RAISE EXCEPTION 'Could not generate unique view code after 10 attempts';
-END;
-$$;
 
 -- Helper functions
 CREATE OR REPLACE FUNCTION get_user_email(user_id uuid)
@@ -153,7 +109,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  new_view_code text;
   stickman_svg text := '
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <circle cx="50" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4"/>
@@ -163,9 +118,6 @@ DECLARE
   <line x1="50" y1="75" x2="70" y2="95" stroke="currentColor" stroke-width="4"/>
 </svg>';
 BEGIN
-  -- Generate the view code first
-  new_view_code := generate_unique_view_code(NEW.id);
-  
   INSERT INTO public.user_profiles (
     id,
     name,
@@ -182,7 +134,7 @@ BEGIN
     'I''m here to learn and teach',
     ARRAY[]::text[],
     'dark',
-    new_view_code,
+    encode(gen_random_bytes(6), 'base64'),
     'data:image/svg+xml,' || encode(stickman_svg::bytea, 'base64'),
     'other'
   )
@@ -339,18 +291,18 @@ CREATE POLICY "Group members can create meetings"
 CREATE INDEX IF NOT EXISTS idx_user_profiles_view_code 
 ON user_profiles(view_code);
 
+-- Enable realtime
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  END IF;
+END $$;
+
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION get_user_email TO authenticated;
-
--- Generate view codes for existing users
-DO $$
-DECLARE
-  profile RECORD;
-BEGIN
-  FOR profile IN 
-    SELECT id FROM user_profiles 
-    WHERE view_code IS NULL OR view_code = ''
-  LOOP
-    PERFORM generate_unique_view_code(profile.id);
-  END LOOP;
-END $$;

@@ -47,7 +47,6 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         if (signUpError) throw signUpError;
         if (!user) throw new Error('No user returned after signup');
 
-        // Profile will be created automatically by the database trigger
         setMessage('Account created successfully! Please check your email to confirm your account.');
         setIsSignUp(false);
       } else {
@@ -91,16 +90,16 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-[#2B2D31] rounded-lg shadow-xl">
+    <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-xl">
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
           {isForgotPassword 
             ? 'Reset Password'
             : isSignUp 
               ? 'Welcome in!'
               : 'Welcome back!'}
         </h2>
-        <p className="text-[#B9BBBE]">
+        <p className="text-gray-600">
           {isForgotPassword
             ? 'Enter your email to receive a reset link'
             : isSignUp
@@ -112,7 +111,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       <button
         onClick={handleGoogleSignIn}
         disabled={loading}
-        className="w-full mb-4 py-3 bg-white hover:bg-gray-100 text-gray-800 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+        className="w-full mb-4 py-3 bg-gray-50 hover:bg-gray-100 text-gray-800 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 border border-gray-200"
       >
         <Chrome size={20} />
         Continue with Google
@@ -120,24 +119,24 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[#1E1F22]"></div>
+          <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-[#2B2D31] text-[#B9BBBE]">Or continue with email</span>
+          <span className="px-2 bg-white text-gray-500">Or continue with email</span>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 text-[#B9BBBE]" size={20} />
+            <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
               required
-              className="w-full pl-11 pr-4 py-3 bg-[#383A40] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5865F2] placeholder-[#72767D]"
+              className="w-full pl-11 pr-4 py-3 bg-white text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent placeholder-gray-400"
             />
           </div>
         </div>
@@ -145,14 +144,14 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         {!isForgotPassword && (
           <div>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 text-[#B9BBBE]" size={20} />
+              <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
                 required
-                className="w-full pl-11 pr-4 py-3 bg-[#383A40] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5865F2] placeholder-[#72767D]"
+                className="w-full pl-11 pr-4 py-3 bg-white text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent placeholder-gray-400"
               />
             </div>
           </div>
@@ -161,27 +160,27 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         {isSignUp && (
           <div>
             <div className="relative">
-              <KeyRound className="absolute left-3 top-3 text-[#B9BBBE]" size={20} />
+              <KeyRound className="absolute left-3 top-3 text-gray-400" size={20} />
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm Password"
                 required
-                className="w-full pl-11 pr-4 py-3 bg-[#383A40] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5865F2] placeholder-[#72767D]"
+                className="w-full pl-11 pr-4 py-3 bg-white text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent placeholder-gray-400"
               />
             </div>
           </div>
         )}
 
         {error && (
-          <div className="text-[#ED4245] text-sm p-3 bg-[#ED4245]/10 rounded-lg">
+          <div className="text-red-500 text-sm p-3 bg-red-50 rounded-lg">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="text-[#43B581] text-sm p-3 bg-[#43B581]/10 rounded-lg">
+          <div className="text-green-500 text-sm p-3 bg-green-50 rounded-lg">
             {message}
           </div>
         )}
@@ -189,7 +188,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
         >
           {loading ? (
             'Please wait...'
@@ -219,7 +218,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                 setIsSignUp(!isSignUp);
                 resetForm();
               }}
-              className="text-[#B9BBBE] hover:text-white text-sm transition-colors"
+              className="text-gray-600 hover:text-pink-500 text-sm transition-colors"
             >
               {isSignUp
                 ? 'Already have an account? Sign in'
@@ -234,7 +233,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               setIsSignUp(false);
               resetForm();
             }}
-            className="text-[#B9BBBE] hover:text-white text-sm transition-colors"
+            className="text-gray-600 hover:text-pink-500 text-sm transition-colors"
           >
             {isForgotPassword
               ? 'Back to Sign In'
