@@ -111,6 +111,48 @@ function Settings({ isOpen, onClose, groupId, onExitGroup }: SettingsProps) {
     }
   };
 
+  const handleExitGroup = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('No user found');
+
+      // First check if user is the last creator
+      const { data: creators } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId)
+        .eq('is_creator', true);
+
+      if (creators?.length === 1 && creators[0].user_id === userData.user.id) {
+        throw new Error('You are the last creator. Please delete the group instead.');
+      }
+
+      // Delete the member
+      const { error: deleteError } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userData.user.id)
+        .select();
+
+      if (deleteError) throw deleteError;
+
+      // Close the modal and trigger the exit callback
+      onClose();
+      if (onExitGroup) {
+        onExitGroup();
+      }
+    } catch (err) {
+      console.error('Error leaving group:', err);
+      setError(err instanceof Error ? err.message : 'Failed to leave the group. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteGroup = async () => {
     if (!group || deleteConfirmName !== group.name) {
       setError('Please enter the exact group name to confirm deletion');
@@ -232,24 +274,28 @@ function Settings({ isOpen, onClose, groupId, onExitGroup }: SettingsProps) {
             </div>
           )}
 
-          {isCreator && (
-            <div className="pt-6 border-t border-[#1E1F22]">
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="w-full px-4 py-3 bg-[#ED4245] text-white rounded-lg hover:bg-[#C03537] transition-colors flex items-center justify-center gap-2"
-                disabled={loading}
-              >
-                <AlertTriangle size={20} />
-                Delete Group
-              </button>
+          <div className="pt-6 border-t border-[#1E1F22]">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full px-4 py-3 bg-[#ED4245] text-white rounded-lg hover:bg-[#C03537] transition-colors flex items-center justify-center gap-2"
+              disabled={loading}
+            >
+              <AlertTriangle size={20} />
+              {isCreator ? 'Delete Group' : 'Leave Group'}
+            </button>
 
-              {showDeleteConfirm && (
-                <div className="mt-4 p-4 bg-[#383A40] rounded-lg">
-                  <h3 className="text-white font-semibold mb-2">Delete Group</h3>
-                  <p className="text-[#B9BBBE] mb-4">
-                    This action cannot be undone. Please type the group name to confirm deletion:
-                  </p>
-                  
+            {showDeleteConfirm && (
+              <div className="mt-4 p-4 bg-[#383A40] rounded-lg">
+                <h3 className="text-white font-semibold mb-2">
+                  {isCreator ? 'Delete Group' : 'Leave Group'}
+                </h3>
+                <p className="text-[#B9BBBE] mb-4">
+                  {isCreator
+                    ? 'This action cannot be undone. Please type the group name to confirm deletion:'
+                    : 'Are you sure you want to leave this group?'}
+                </p>
+                
+                {isCreator && (
                   <input
                     type="text"
                     value={deleteConfirmName}
@@ -257,31 +303,31 @@ function Settings({ isOpen, onClose, groupId, onExitGroup }: SettingsProps) {
                     placeholder={group.name}
                     className="w-full px-4 py-2 bg-[#2B2D31] text-[#DCDDDE] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ED4245] mb-4"
                   />
+                )}
 
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => {
-                        setShowDeleteConfirm(false);
-                        setDeleteConfirmName('');
-                        setError(null);
-                      }}
-                      className="px-4 py-2 text-[#DCDDDE] hover:text-white transition-colors"
-                      disabled={loading}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleDeleteGroup}
-                      className="px-4 py-2 bg-[#ED4245] text-white rounded-lg hover:bg-[#C03537] transition-colors"
-                      disabled={loading}
-                    >
-                      {loading ? 'Processing...' : 'Delete Group'}
-                    </button>
-                  </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setDeleteConfirmName('');
+                      setError(null);
+                    }}
+                    className="px-4 py-2 text-[#DCDDDE] hover:text-white transition-colors"
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={isCreator ? handleDeleteGroup : handleExitGroup}
+                    className="px-4 py-2 bg-[#ED4245] text-white rounded-lg hover:bg-[#C03537] transition-colors"
+                    disabled={loading}
+                  >
+                    {loading ? 'Processing...' : isCreator ? 'Delete Group' : 'Leave Group'}
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="p-4 border-t border-[#1E1F22] flex justify-end gap-3 sticky bottom-0 bg-[#2B2D31]">

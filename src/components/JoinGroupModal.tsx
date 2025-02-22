@@ -44,15 +44,6 @@ export function JoinGroupModal({ isOpen, onClose, userId, onJoinSuccess }: JoinG
         throw new Error('You are already a member of this group');
       }
 
-      // Get user's name from profile
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('name')
-        .eq('id', userId)
-        .single();
-
-      const userName = userProfile?.name || 'Someone';
-
       // Join the group
       const { error: joinError } = await supabase
         .from('group_members')
@@ -63,20 +54,6 @@ export function JoinGroupModal({ isOpen, onClose, userId, onJoinSuccess }: JoinG
         }]);
 
       if (joinError) throw joinError;
-
-      // Send welcome message
-      const welcomeMessage = `👋 ${userName} has joined the group. Say hi!`;
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert([{
-          text: welcomeMessage,
-          sender: 'system',
-          group_id: group.id
-        }]);
-
-      if (messageError) {
-        console.error('Error sending welcome message:', messageError);
-      }
 
       onJoinSuccess();
       onClose();
