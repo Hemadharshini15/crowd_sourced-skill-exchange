@@ -1,11 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Get environment variables with fallbacks
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+// Validate environment variables
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
+
+// Ensure URL is valid
+try {
+  new URL(supabaseUrl);
+} catch (e) {
+  throw new Error(`Invalid Supabase URL: ${supabaseUrl}`);
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {

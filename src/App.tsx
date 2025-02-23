@@ -253,7 +253,7 @@ function App() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#313338] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Auth onAuthSuccess={() => {}} />
       </div>
     );
@@ -269,39 +269,37 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#313338] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-[#2B2D31] rounded-lg shadow-xl flex flex-col h-[700px] overflow-hidden">
-        <div className="p-4 border-b border-[#1E1F22] flex items-center justify-between bg-gradient-to-r from-[#5865F2] to-[#7289DA]">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setGroupId(null)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-black/20 transition-colors"
-            >
-              <ArrowLeft size={20} className="text-white" />
-            </button>
-            <MessageSquare className="text-white" size={24} />
-            <h1 className="text-xl font-semibold text-white">{groupInfo?.name || 'Loading...'}</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-black/20 transition-colors"
-            >
-              <SettingsIcon size={20} className="text-white" />
-            </button>
-          </div>
+    <div className="h-screen flex flex-col bg-gray-50">
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-pink-400 to-pink-500">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setGroupId(null)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <ArrowLeft size={20} className="text-white" />
+          </button>
+          <MessageSquare className="text-white" size={24} />
+          <h1 className="text-xl font-semibold text-white">{groupInfo?.name || 'Loading...'}</h1>
         </div>
-        
-        <MessageList 
-          messages={messages} 
-          currentUser={session.user.id} 
-          userProfiles={userProfiles}
-        />
-        <MessageInput 
-          onSendMessage={handleSendMessage}
-          onScheduleMeet={() => setIsScheduleMeetOpen(true)}
-        />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <SettingsIcon size={20} className="text-white" />
+          </button>
+        </div>
       </div>
+      
+      <MessageList 
+        messages={messages} 
+        currentUser={session.user.id} 
+        userProfiles={userProfiles}
+      />
+      <MessageInput 
+        onSendMessage={handleSendMessage}
+        onScheduleMeet={() => setIsScheduleMeetOpen(true)}
+      />
 
       <Settings
         isOpen={isSettingsOpen}

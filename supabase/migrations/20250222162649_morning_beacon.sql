@@ -1,3 +1,6 @@
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Messages table
 CREATE TABLE IF NOT EXISTS messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -26,14 +29,18 @@ CREATE TABLE IF NOT EXISTS group_members (
   PRIMARY KEY (group_id, user_id)
 );
 
--- User profiles
+-- User profiles with all columns
 CREATE TABLE IF NOT EXISTS user_profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY,
   name text NOT NULL,
   bio text NOT NULL DEFAULT 'I''m here to learn and teach',
   topics text[] DEFAULT ARRAY[]::text[],
   theme text NOT NULL DEFAULT 'dark',
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  view_code text UNIQUE DEFAULT encode(gen_random_bytes(6), 'base64'),
+  profile_picture_url text,
+  custom_avatar_url text,
+  gender text CHECK (gender IN ('male', 'female', 'other')) DEFAULT 'other'
 );
 
 -- Meetings
@@ -47,12 +54,10 @@ CREATE TABLE IF NOT EXISTS meetings (
   created_at timestamptz DEFAULT now()
 );
 
--- Enable RLS
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
+-- Create storage bucket for avatars
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Helper functions
 CREATE OR REPLACE FUNCTION get_user_email(user_id uuid)
@@ -85,19 +90,52 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  stickman_svg text := '
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4"/>
+  <line x1="50" y1="45" x2="50" y2="75" stroke="currentColor" stroke-width="4"/>
+  <line x1="20" y1="60" x2="80" y2="60" stroke="currentColor" stroke-width="4"/>
+  <line x1="50" y1="75" x2="30" y2="95" stroke="currentColor" stroke-width="4"/>
+  <line x1="50" y1="75" x2="70" y2="95" stroke="currentColor" stroke-width="4"/>
+</svg>';
 BEGIN
-  INSERT INTO public.user_profiles (id, name, bio, topics, theme)
+  INSERT INTO public.user_profiles (
+    id,
+    name,
+    bio,
+    topics,
+    theme,
+    view_code,
+    profile_picture_url,
+    gender
+  )
   VALUES (
     NEW.id,
     COALESCE(SPLIT_PART(NEW.email, '@', 1), 'User'),
     'I''m here to learn and teach',
     ARRAY[]::text[],
-    'dark'
-  )
-  ON CONFLICT (id) DO NOTHING;
+    'dark',
+    encode(gen_random_bytes(6), 'base64'),
+    'data:image/svg+xml,' || encode(stickman_svg::bytea, 'base64'),
+    'other'
+  );
+  
+  RETURN NEW;
+EXCEPTION WHEN unique_violation THEN
+  -- If there's a unique violation, just return the NEW record
+  -- This allows the auth signup to complete even if the profile already exists
   RETURN NEW;
 END;
 $$;
+
+-- Enable RLS
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Triggers
 DROP TRIGGER IF EXISTS before_group_delete ON groups;
@@ -109,9 +147,48 @@ CREATE TRIGGER before_group_delete
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_user();
 
--- Policies
+-- Storage Policies
+DROP POLICY IF EXISTS "Users can upload their own avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own avatars" ON storage.objects;
+
+CREATE POLICY "Users can upload their own avatars"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'avatars' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Anyone can view avatars"
+ON storage.objects FOR SELECT TO public
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can delete their own avatars"
+ON storage.objects FOR DELETE TO authenticated
+USING (
+  bucket_id = 'avatars' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Drop existing policies first
+DROP POLICY IF EXISTS "Group members can read messages" ON messages;
+DROP POLICY IF EXISTS "Group members can send messages" ON messages;
+DROP POLICY IF EXISTS "Anyone can read group data" ON groups;
+DROP POLICY IF EXISTS "Authenticated users can create groups" ON groups;
+DROP POLICY IF EXISTS "Group members can update group settings" ON groups;
+DROP POLICY IF EXISTS "Group creators can delete groups" ON groups;
+DROP POLICY IF EXISTS "Members can read group_members" ON group_members;
+DROP POLICY IF EXISTS "Authenticated users can join groups" ON group_members;
+DROP POLICY IF EXISTS "Anyone can view profiles" ON user_profiles;
+DROP POLICY IF EXISTS "Users can create own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Group members can view meetings" ON meetings;
+DROP POLICY IF EXISTS "Group members can create meetings" ON meetings;
+
+-- Table Policies
 CREATE POLICY "Group members can read messages"
   ON messages FOR SELECT TO authenticated
   USING (EXISTS (
@@ -195,8 +272,22 @@ CREATE POLICY "Group members can create meetings"
     AND user_id = auth.uid()
   ));
 
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_user_profiles_view_code 
+ON user_profiles(view_code);
+
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  END IF;
+END $$;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION get_user_email TO authenticated;

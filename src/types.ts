@@ -42,6 +42,10 @@ export interface UserProfile {
   bio: string;
   topics: string[];
   created_at: string;
+  view_code: string;
+  profile_picture_url: string;
+  custom_avatar_url?: string;
+  gender: 'male' | 'female' | 'other';
 }
 
 export interface Meeting {

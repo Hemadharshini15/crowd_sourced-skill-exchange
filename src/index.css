@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'FF Mark';
+  src: url('https://cdn.fontshare.com/wf/XQYZJ4NTBFOF6YXCQRW2/YRWRN2Q264YH5TG2/ff-mark-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FF Mark';
+  src: url('https://cdn.fontshare.com/wf/XQYZJ4NTBFOF6YXCQRW2/YRWRN2Q264YH5TG2/ff-mark-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FF Mark';
+  src: url('https://cdn.fontshare.com/wf/XQYZJ4NTBFOF6YXCQRW2/YRWRN2Q264YH5TG2/ff-mark-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -20,31 +44,29 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  @apply text-sm text-white;
-  background: linear-gradient(-45deg, #1a1b1e, #2B2D31, #1E1F22, #313338);
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
+  font-family: 'FF Mark', system-ui, -apple-system, sans-serif;
+  @apply text-sm text-gray-800;
+  background: #f8f9fa;
 }
 
 /* Input styles */
 input, textarea {
-  @apply bg-[#383A40] text-white transition-colors duration-200;
+  @apply bg-white border border-gray-200 text-gray-800 transition-colors duration-200;
 }
 
 input::placeholder, textarea::placeholder {
-  @apply text-[#72767D];
+  @apply text-gray-400;
 }
 
 /* Message styles */
 .message-bubble {
-  @apply bg-[#40444B] text-[#DCDDDE] transition-all duration-200;
+  @apply bg-white border border-gray-100 text-gray-800 shadow-sm transition-all duration-200;
   animation: slideIn 0.3s ease-out;
 }
 
 .message-bubble.own {
-  background: linear-gradient(135deg, #5865F2, #4752C4);
-  @apply text-white shadow-lg;
+  background: linear-gradient(135deg, #FF69B4, #FF1493);
+  @apply text-white shadow-lg border-0;
 }
 
 /* Button styles */
@@ -62,7 +84,7 @@ button:active {
 
 /* Header gradient */
 .header-gradient {
-  background: linear-gradient(135deg, #5865F2, #7289DA);
+  background: linear-gradient(135deg, #FF69B4, #FF1493);
   background-size: 200% 200%;
   animation: gradient 5s ease infinite;
 }
