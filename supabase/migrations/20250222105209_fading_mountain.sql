@@ -1,7 +1,5 @@
 /*
-  # Initial Schema Setup
-
-  1. Tables
+    1. Tables
     - messages: For group chat messages
     - groups: For study groups
     - group_members: For group membership
